@@ -24,15 +24,16 @@
         version = "1.0.0";
         sku = "xpclient-pro";
 
-        # Base library: wintc-comgtk
-        wintc-comgtk = pkgs.stdenv.mkDerivation {
-          pname = "wintc-comgtk";
-          version = version;
+        # Helper function to build wintc libraries with proper structure
+        mkWintcLib = { pname, sourceDir, buildInputs ? [], meta ? {} }: pkgs.stdenv.mkDerivation {
+          inherit pname version;
 
-          src = ./shared/comgtk;
+          src = ./.;
+
+          sourceRoot = ".";
 
           nativeBuildInputs = commonBuildInputs;
-          buildInputs = with pkgs; [ glib gtk3 ];
+          buildInputs = buildInputs;
 
           cmakeFlags = [
             "-DBUILD_SHARED_LIBS=ON"
@@ -43,12 +44,46 @@
             "-DWINTC_USE_LOCAL_LIBS=OFF"
           ];
 
-          preConfigure = ''
-            # Copy cmake-inc directory needed for build
-            mkdir -p ../packaging
-            cp -r ${./packaging/cmake-inc} ../packaging/cmake-inc
+          configurePhase = ''
+            runHook preConfigure
+            
+            cd ${sourceDir}
+            
+            cmake -B build \
+              -DCMAKE_INSTALL_PREFIX=$out \
+              $cmakeFlags
+            
+            runHook postConfigure
           '';
 
+          buildPhase = ''
+            runHook preBuild
+            
+            cd ${sourceDir}
+            cmake --build build -j$NIX_BUILD_CORES
+            
+            runHook postBuild
+          '';
+
+          installPhase = ''
+            runHook preInstall
+            
+            cd ${sourceDir}
+            cmake --install build
+            
+            runHook postInstall
+          '';
+
+          meta = meta // {
+            platforms = pkgs.lib.platforms.linux;
+          };
+        };
+
+        # Base library: wintc-comgtk
+        wintc-comgtk = mkWintcLib {
+          pname = "wintc-comgtk";
+          sourceDir = "shared/comgtk";
+          buildInputs = with pkgs; [ glib gtk3 ];
           meta = {
             description = "Windows Total Conversion common GLib/GTK utilities";
             license = pkgs.lib.licenses.gpl2;
@@ -56,29 +91,10 @@
         };
 
         # wintc-shcommon
-        wintc-shcommon = pkgs.stdenv.mkDerivation {
+        wintc-shcommon = mkWintcLib {
           pname = "wintc-shcommon";
-          version = version;
-
-          src = ./shared/shcommon;
-
-          nativeBuildInputs = commonBuildInputs;
+          sourceDir = "shared/shcommon";
           buildInputs = with pkgs; [ glib gtk3 wintc-comgtk ];
-
-          cmakeFlags = [
-            "-DBUILD_SHARED_LIBS=ON"
-            "-DCMAKE_BUILD_TYPE=Release"
-            "-DWINTC_SKU=${sku}"
-            "-DWINTC_PKGMGR=nix"
-            "-DWINTC_PKGMGR_EXT=nix"
-            "-DWINTC_USE_LOCAL_LIBS=OFF"
-          ];
-
-          preConfigure = ''
-            mkdir -p ../packaging
-            cp -r ${./packaging/cmake-inc} ../packaging/cmake-inc
-          '';
-
           meta = {
             description = "Windows Total Conversion common shell utilities library";
             license = pkgs.lib.licenses.gpl2;
@@ -86,29 +102,10 @@
         };
 
         # wintc-shlang
-        wintc-shlang = pkgs.stdenv.mkDerivation {
+        wintc-shlang = mkWintcLib {
           pname = "wintc-shlang";
-          version = version;
-
-          src = ./shared/shlang;
-
-          nativeBuildInputs = commonBuildInputs ++ [ pkgs.gettext ];
-          buildInputs = with pkgs; [ glib gtk3 wintc-comgtk wintc-shcommon ];
-
-          cmakeFlags = [
-            "-DBUILD_SHARED_LIBS=ON"
-            "-DCMAKE_BUILD_TYPE=Release"
-            "-DWINTC_SKU=${sku}"
-            "-DWINTC_PKGMGR=nix"
-            "-DWINTC_PKGMGR_EXT=nix"
-            "-DWINTC_USE_LOCAL_LIBS=OFF"
-          ];
-
-          preConfigure = ''
-            mkdir -p ../packaging
-            cp -r ${./packaging/cmake-inc} ../packaging/cmake-inc
-          '';
-
+          sourceDir = "shared/shlang";
+          buildInputs = with pkgs; [ glib gtk3 gettext wintc-comgtk wintc-shcommon ];
           meta = {
             description = "Windows Total Conversion shell language string utilities";
             license = pkgs.lib.licenses.gpl2;
@@ -116,29 +113,10 @@
         };
 
         # wintc-winbrand
-        wintc-winbrand = pkgs.stdenv.mkDerivation {
+        wintc-winbrand = mkWintcLib {
           pname = "wintc-winbrand";
-          version = version;
-
-          src = ./shared/winbrand;
-
-          nativeBuildInputs = commonBuildInputs;
+          sourceDir = "shared/winbrand";
           buildInputs = with pkgs; [ glib gtk3 gdk-pixbuf wintc-comgtk ];
-
-          cmakeFlags = [
-            "-DBUILD_SHARED_LIBS=ON"
-            "-DCMAKE_BUILD_TYPE=Release"
-            "-DWINTC_SKU=${sku}"
-            "-DWINTC_PKGMGR=nix"
-            "-DWINTC_PKGMGR_EXT=nix"
-            "-DWINTC_USE_LOCAL_LIBS=OFF"
-          ];
-
-          preConfigure = ''
-            mkdir -p ../packaging
-            cp -r ${./packaging/cmake-inc} ../packaging/cmake-inc
-          '';
-
           meta = {
             description = "Windows Total Conversion Windows branding library";
             license = pkgs.lib.licenses.unfree; # Contains Windows assets
@@ -146,13 +124,9 @@
         };
 
         # wintc-comctl
-        wintc-comctl = pkgs.stdenv.mkDerivation {
+        wintc-comctl = mkWintcLib {
           pname = "wintc-comctl";
-          version = version;
-
-          src = ./shared/comctl;
-
-          nativeBuildInputs = commonBuildInputs;
+          sourceDir = "shared/comctl";
           buildInputs = with pkgs; [
             glib
             gtk3
@@ -161,21 +135,6 @@
             wintc-shcommon
             wintc-shlang
           ];
-
-          cmakeFlags = [
-            "-DBUILD_SHARED_LIBS=ON"
-            "-DCMAKE_BUILD_TYPE=Release"
-            "-DWINTC_SKU=${sku}"
-            "-DWINTC_PKGMGR=nix"
-            "-DWINTC_PKGMGR_EXT=nix"
-            "-DWINTC_USE_LOCAL_LIBS=OFF"
-          ];
-
-          preConfigure = ''
-            mkdir -p ../packaging
-            cp -r ${./packaging/cmake-inc} ../packaging/cmake-inc
-          '';
-
           meta = {
             description = "Windows Total Conversion common controls library";
             license = pkgs.lib.licenses.gpl2;
@@ -183,13 +142,9 @@
         };
 
         # wintc-msgina
-        wintc-msgina = pkgs.stdenv.mkDerivation {
+        wintc-msgina = mkWintcLib {
           pname = "wintc-msgina";
-          version = version;
-
-          src = ./shared/msgina;
-
-          nativeBuildInputs = commonBuildInputs;
+          sourceDir = "shared/msgina";
           buildInputs = with pkgs; [
             glib
             gtk3
@@ -199,21 +154,6 @@
             wintc-comctl
             wintc-winbrand
           ];
-
-          cmakeFlags = [
-            "-DBUILD_SHARED_LIBS=ON"
-            "-DCMAKE_BUILD_TYPE=Release"
-            "-DWINTC_SKU=${sku}"
-            "-DWINTC_PKGMGR=nix"
-            "-DWINTC_PKGMGR_EXT=nix"
-            "-DWINTC_USE_LOCAL_LIBS=OFF"
-          ];
-
-          preConfigure = ''
-            mkdir -p ../packaging
-            cp -r ${./packaging/cmake-inc} ../packaging/cmake-inc
-          '';
-
           meta = {
             description = "Windows Total Conversion GINA library";
             license = pkgs.lib.licenses.unfree; # Contains Windows assets
@@ -221,13 +161,9 @@
         };
 
         # Main package: logonui
-        logonui = pkgs.stdenv.mkDerivation {
+        logonui = mkWintcLib {
           pname = "wintc-logonui";
-          version = version;
-
-          src = ./base/logonui;
-
-          nativeBuildInputs = commonBuildInputs;
+          sourceDir = "base/logonui";
           buildInputs = with pkgs; [
             glib
             gtk3
@@ -237,32 +173,6 @@
             wintc-comctl
             wintc-msgina
           ];
-
-          cmakeFlags = [
-            "-DBUILD_SHARED_LIBS=ON"
-            "-DCMAKE_BUILD_TYPE=Release"
-            "-DWINTC_SKU=${sku}"
-            "-DWINTC_PKGMGR=nix"
-            "-DWINTC_PKGMGR_EXT=nix"
-            "-DWINTC_USE_LOCAL_LIBS=OFF"
-          ];
-
-          preConfigure = ''
-            mkdir -p ../packaging
-            cp -r ${./packaging/cmake-inc} ../packaging/cmake-inc
-            # Copy tools needed for version generation
-            mkdir -p ../tools/bldutils
-            cp -r ${./tools/bldutils} ../tools/
-          '';
-
-          postInstall = ''
-            # Ensure greeter desktop file is in the correct location
-            mkdir -p $out/share/xgreeters
-            if [ -f $out/share/xgreeters/wintc-logonui.desktop ]; then
-              echo "Greeter desktop file installed successfully"
-            fi
-          '';
-
           meta = {
             description = "Windows Total Conversion logon user interface for LightDM";
             license = pkgs.lib.licenses.unfree; # Contains Windows assets
