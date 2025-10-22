@@ -7,6 +7,18 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
+    let
+      # Overlay for adding our packages to nixpkgs
+      overlay = final: prev: {
+        wintc-comgtk = self.packages.${final.system}.wintc-comgtk;
+        wintc-shcommon = self.packages.${final.system}.wintc-shcommon;
+        wintc-shlang = self.packages.${final.system}.wintc-shlang;
+        wintc-winbrand = self.packages.${final.system}.wintc-winbrand;
+        wintc-comctl = self.packages.${final.system}.wintc-comctl;
+        wintc-msgina = self.packages.${final.system}.wintc-msgina;
+        wintc-logonui = self.packages.${final.system}.logonui;
+      };
+    in
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -205,5 +217,11 @@
           program = "${logonui}/sbin/logonui";
         };
       }
-    );
+    ) // {
+      # Overlay for use in other flakes
+      overlays.default = overlay;
+      
+      # NixOS module
+      nixosModules.default = import ./nixos-module.nix;
+    };
 }

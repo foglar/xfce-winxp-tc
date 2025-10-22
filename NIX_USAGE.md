@@ -71,7 +71,41 @@ nix build .#wintc-msgina
 
 To use the LogonUI greeter in your NixOS configuration:
 
-### Method 1: Using the flake directly
+### Method 1: Using the NixOS module (Recommended)
+
+Add to your `flake.nix`:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    xfce-winxp-tc.url = "github:foglar/xfce-winxp-tc";
+  };
+
+  outputs = { self, nixpkgs, xfce-winxp-tc }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+        # Import the xfce-winxp-tc module
+        xfce-winxp-tc.nixosModules.default
+        {
+          # Use the overlay to make packages available
+          nixpkgs.overlays = [ xfce-winxp-tc.overlays.default ];
+          
+          # Enable the LogonUI greeter
+          services.xfce-winxp-tc.logonui = {
+            enable = true;
+            sku = "xpclient-pro"; # Optional, this is the default
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+### Method 2: Manual installation using the flake
 
 Add to your `flake.nix`:
 
@@ -107,7 +141,7 @@ Add to your `flake.nix`:
 }
 ```
 
-### Method 2: System-wide installation
+### Method 3: System-wide installation with nix profile
 
 Build and install to your system profile:
 
