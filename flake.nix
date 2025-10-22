@@ -42,8 +42,6 @@
 
           src = ./.;
 
-          sourceRoot = ".";
-
           nativeBuildInputs = commonBuildInputs;
           buildInputs = buildInputs;
 
@@ -59,7 +57,7 @@
           configurePhase = ''
             runHook preConfigure
             
-            cd ${sourceDir}
+            cd $sourceRoot/${sourceDir}
             
             cmake -B build \
               -DCMAKE_INSTALL_PREFIX=$out \
@@ -71,7 +69,7 @@
           buildPhase = ''
             runHook preBuild
             
-            cd ${sourceDir}
+            cd $sourceRoot/${sourceDir}
             cmake --build build -j$NIX_BUILD_CORES
             
             runHook postBuild
@@ -80,7 +78,7 @@
           installPhase = ''
             runHook preInstall
             
-            cd ${sourceDir}
+            cd $sourceRoot/${sourceDir}
             cmake --install build
             
             runHook postInstall
