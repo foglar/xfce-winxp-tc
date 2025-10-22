@@ -30,6 +30,7 @@
           glib
           gtk3
           gdk-pixbuf
+          sysprof
         ];
 
         # Version info - can be customized
@@ -49,8 +50,8 @@
             "-DBUILD_SHARED_LIBS=ON"
             "-DCMAKE_BUILD_TYPE=Release"
             "-DWINTC_SKU=${sku}"
-            "-DWINTC_PKGMGR=nix"
-            "-DWINTC_PKGMGR_EXT=nix"
+            "-DWINTC_PKGMGR=raw"
+            "-DWINTC_PKGMGR_EXT="
             "-DWINTC_USE_LOCAL_LIBS=OFF"
           ];
 
