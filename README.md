@@ -22,6 +22,17 @@ There are themes that aim to replicate the Windows XP visual styles already, how
 ## Building / Installation
 Please see the *Installation* section of the Wiki here: https://github.com/rozniak/xfce-winxp-tc/wiki/Installation 😁
 
+### NixOS / Nix Flakes
+For NixOS users, this repository now includes a Nix flake for easy installation of the LogonUI greeter! See [NIX_USAGE.md](NIX_USAGE.md) for detailed instructions on:
+- Building the logonui package and its dependencies
+- Installing it in your NixOS configuration
+- Using it with LightDM
+
+Quick start:
+```bash
+nix build github:foglar/xfce-winxp-tc#logonui
+```
+
 ## The theme(s) are buggy!
 Themes in GTK3 are not supported by upstream and this project is still under development, so they can potentially look broken in certain programs. If you're using themes from this repository and programs look broken, you should file issues here rather than pestering the developers of said program.
 

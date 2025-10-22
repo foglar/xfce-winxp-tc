@@ -29,3 +29,8 @@ resources.c
 *.pot
 *.pyc
 *.rpm
+
+# Nix build outputs
+#
+result
+result-*

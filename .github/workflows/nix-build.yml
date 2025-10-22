@@ -1,0 +1,166 @@
+name: Nix Build and Test
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'flake.nix'
+      - 'base/logonui/**'
+      - 'shared/comgtk/**'
+      - 'shared/comctl/**'
+      - 'shared/msgina/**'
+      - 'shared/winbrand/**'
+      - 'shared/shcommon/**'
+      - 'shared/shlang/**'
+      - '.github/workflows/nix-build.yml'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'flake.nix'
+      - 'base/logonui/**'
+      - 'shared/**'
+      - '.github/workflows/nix-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v25
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Setup Cachix (optional)
+        continue-on-error: true
+        if: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
+        uses: cachix/cachix-action@v14
+        with:
+          name: xfce-winxp-tc
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: true
+
+      - name: Validate flake syntax
+        run: |
+          nix flake check --show-trace || true
+          nix flake show
+
+      - name: Build wintc-comgtk (base library)
+        run: |
+          echo "Building base library wintc-comgtk..."
+          nix build .#wintc-comgtk --print-build-logs
+          
+      - name: Build wintc-shcommon
+        run: |
+          echo "Building wintc-shcommon..."
+          nix build .#wintc-shcommon --print-build-logs
+
+      - name: Build wintc-shlang
+        run: |
+          echo "Building wintc-shlang..."
+          nix build .#wintc-shlang --print-build-logs
+
+      - name: Build wintc-winbrand
+        run: |
+          echo "Building wintc-winbrand..."
+          nix build .#wintc-winbrand --print-build-logs
+
+      - name: Build wintc-comctl
+        run: |
+          echo "Building wintc-comctl..."
+          nix build .#wintc-comctl --print-build-logs
+
+      - name: Build wintc-msgina
+        run: |
+          echo "Building wintc-msgina..."
+          nix build .#wintc-msgina --print-build-logs
+
+      - name: Build logonui
+        run: |
+          echo "Building logonui (main package)..."
+          nix build .#logonui --print-build-logs
+
+      - name: Build default package
+        run: |
+          echo "Building default package..."
+          nix build --print-build-logs
+
+      - name: Check logonui binary
+        run: |
+          nix build .#logonui
+          ls -lah result/
+          find result/ -type f -executable
+          if [ -f result/sbin/logonui ]; then
+            echo "✓ logonui binary found at result/sbin/logonui"
+            file result/sbin/logonui
+          else
+            echo "✗ logonui binary not found"
+            find result/ -name "logonui" || true
+            exit 1
+          fi
+
+      - name: Check greeter desktop file
+        run: |
+          if [ -f result/share/xgreeters/wintc-logonui.desktop ]; then
+            echo "✓ LightDM greeter desktop file found"
+            cat result/share/xgreeters/wintc-logonui.desktop
+          else
+            echo "✗ Greeter desktop file not found"
+            find result/ -name "*.desktop" || true
+            exit 1
+          fi
+
+      - name: List all build outputs
+        run: |
+          echo "=== Build output structure ==="
+          tree result/ || find result/ -type f
+
+      - name: Generate build summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully built the following packages:" >> $GITHUB_STEP_SUMMARY
+          echo "- wintc-comgtk" >> $GITHUB_STEP_SUMMARY
+          echo "- wintc-shcommon" >> $GITHUB_STEP_SUMMARY
+          echo "- wintc-shlang" >> $GITHUB_STEP_SUMMARY
+          echo "- wintc-winbrand" >> $GITHUB_STEP_SUMMARY
+          echo "- wintc-comctl" >> $GITHUB_STEP_SUMMARY
+          echo "- wintc-msgina" >> $GITHUB_STEP_SUMMARY
+          echo "- logonui (main package)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Package Info" >> $GITHUB_STEP_SUMMARY
+          nix eval .#logonui.meta.description --raw >> $GITHUB_STEP_SUMMARY || echo "N/A" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  test-dev-shell:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v25
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Test development shell
+        run: |
+          nix develop --command bash -c "
+            echo 'Testing development shell...'
+            cmake --version
+            pkg-config --version
+            echo 'Development shell works!'
+          "
