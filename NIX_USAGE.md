@@ -236,6 +236,15 @@ All dependencies are automatically handled by the Nix flake.
 
 Note that some components include Windows assets which are proprietary. The source code itself is GPL 2.0 licensed. When using this in production, be aware of the licensing implications.
 
+## Examples
+
+For practical examples of using LogonUI in various NixOS configurations, see [EXAMPLES.md](EXAMPLES.md). This includes:
+- Basic flake-based configurations
+- Integration with Home Manager
+- Development and testing setups
+- Custom SKU configurations
+- VM testing examples
+
 ## Contributing
 
 To make changes to the build:
