@@ -1,0 +1,43 @@
+name: Validate Nix Flake Syntax
+
+on:
+  push:
+    paths:
+      - 'flake.nix'
+      - 'nixos-module.nix'
+      - '.github/workflows/validate-flake.yml'
+  pull_request:
+    paths:
+      - 'flake.nix'
+      - 'nixos-module.nix'
+      - '.github/workflows/validate-flake.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v25
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Validate flake syntax
+        run: |
+          nix flake metadata --json | jq .
+          echo "✓ Flake syntax is valid"
+
+      - name: Show flake outputs
+        run: |
+          echo "=== Available outputs ==="
+          nix flake show
+
+      - name: Check flake
+        run: |
+          nix flake check --all-systems --show-trace

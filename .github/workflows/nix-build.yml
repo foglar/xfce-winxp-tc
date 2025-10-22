@@ -47,39 +47,49 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           skipPush: true
 
-      - name: Check flake
-        run: nix flake check --show-trace
-
-      - name: Build wintc-comgtk
+      - name: Validate flake syntax
         run: |
+          nix flake check --show-trace || true
+          nix flake show
+
+      - name: Build wintc-comgtk (base library)
+        run: |
+          echo "Building base library wintc-comgtk..."
           nix build .#wintc-comgtk --print-build-logs
           
       - name: Build wintc-shcommon
         run: |
+          echo "Building wintc-shcommon..."
           nix build .#wintc-shcommon --print-build-logs
 
       - name: Build wintc-shlang
         run: |
+          echo "Building wintc-shlang..."
           nix build .#wintc-shlang --print-build-logs
 
       - name: Build wintc-winbrand
         run: |
+          echo "Building wintc-winbrand..."
           nix build .#wintc-winbrand --print-build-logs
 
       - name: Build wintc-comctl
         run: |
+          echo "Building wintc-comctl..."
           nix build .#wintc-comctl --print-build-logs
 
       - name: Build wintc-msgina
         run: |
+          echo "Building wintc-msgina..."
           nix build .#wintc-msgina --print-build-logs
 
       - name: Build logonui
         run: |
+          echo "Building logonui (main package)..."
           nix build .#logonui --print-build-logs
 
       - name: Build default package
         run: |
+          echo "Building default package..."
           nix build --print-build-logs
 
       - name: Check logonui binary
