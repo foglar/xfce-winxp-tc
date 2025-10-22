@@ -57,7 +57,7 @@
           configurePhase = ''
             runHook preConfigure
             
-            cd $sourceRoot/${sourceDir}
+            cd ${sourceDir}
             
             cmake -B build \
               -DCMAKE_INSTALL_PREFIX=$out \
@@ -69,7 +69,7 @@
           buildPhase = ''
             runHook preBuild
             
-            cd $sourceRoot/${sourceDir}
+            cd ${sourceDir}
             cmake --build build -j$NIX_BUILD_CORES
             
             runHook postBuild
@@ -78,7 +78,7 @@
           installPhase = ''
             runHook preInstall
             
-            cd $sourceRoot/${sourceDir}
+            cd ${sourceDir}
             cmake --install build
             
             runHook postInstall
